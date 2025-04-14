@@ -49,7 +49,7 @@ public class LeavingCertificateController {
             return new ResponseEntity<>("Student not found", HttpStatus.NOT_FOUND);
         }
 
-        ByteArrayOutputStream bos = this.tcService.generateTc(studentId);
+        ByteArrayOutputStream bos = this.tcService.generateLc(studentId);
 
         int copyCount = student.getLeavingCertificates() == null ? 0 : student.getLeavingCertificates().size();
 

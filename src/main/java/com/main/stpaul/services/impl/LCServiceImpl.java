@@ -37,7 +37,7 @@ public class LCServiceImpl implements LCService {
     }
 
     @Override
-    public ByteArrayOutputStream generateTc(String studentId) throws IOException {
+    public ByteArrayOutputStream generateLc(String studentId) throws IOException {
 
         int SPACE_LENGTH = 20;
 
