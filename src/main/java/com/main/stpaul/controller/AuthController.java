@@ -1,6 +1,8 @@
 package com.main.stpaul.controller;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
@@ -37,9 +39,11 @@ import com.main.stpaul.dto.ResponseDTO.SuccessResponse;
 import com.main.stpaul.dto.request.LoginRequest;
 import com.main.stpaul.dto.request.RegisterRequest;
 import com.main.stpaul.dto.request.ResetPassword;
+import com.main.stpaul.dto.request.TransferCertificateRequest;
 import com.main.stpaul.dto.request.VarifyOpt;
 import com.main.stpaul.entities.Session;
 import com.main.stpaul.entities.Student;
+import com.main.stpaul.entities.TransferCertificate;
 import com.main.stpaul.entities.User;
 import com.main.stpaul.jwtSecurity.CustomerUserDetail;
 import com.main.stpaul.jwtSecurity.JwtProvider;
@@ -48,6 +52,8 @@ import com.main.stpaul.services.impl.OtpSerivceImpl;
 import com.main.stpaul.services.impl.SessionServiceImpl;
 import com.main.stpaul.services.impl.StudentServiceImpl;
 import com.main.stpaul.services.impl.UserServiceImpl;
+import com.main.stpaul.services.serviceInterface.StudentService;
+import com.main.stpaul.services.serviceInterface.TCService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
@@ -66,6 +72,9 @@ public class AuthController {
 
     @Autowired
     private OtpSerivceImpl otpSerivceImpl;
+
+    @Autowired
+    private TCService tcService;
 
     @Autowired
     private SessionServiceImpl sessionServiceImpl;
@@ -212,30 +221,29 @@ public class AuthController {
         }
     }
 
-
-
-     @GetMapping("/students/csv")
+    @GetMapping("/students/csv")
     @Operation(summary = "Export students to CSV", description = "Exports student data to a CSV file")
-    public ResponseEntity<?> exportStudents(@RequestParam Map<String, String> params)throws Exception{
+    public ResponseEntity<?> exportStudents(@RequestParam Map<String, String> params) throws Exception {
         log.info("Starting exportStudents method with params: {}", params);
         try {
-            ByteArrayInputStream stream = this.studentServiceImpl.loadStudentDataToCSV(params.get("query"),params.get("stdClass"),params.get("section"),params.get("session"));
+            ByteArrayInputStream stream = this.studentServiceImpl.loadStudentDataToCSV(params.get("query"),
+                    params.get("stdClass"), params.get("section"), params.get("session"));
             if (stream == null) {
                 log.warn("No data found for the given parameters: {}", params);
                 throw new EntityNotFoundException("No data found for the given parameters!");
             }
-           
+
             InputStreamResource resource = new InputStreamResource(stream);
 
             HttpHeaders headers = new HttpHeaders();
             headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=student.csv");
             headers.setContentType(MediaType.parseMediaType("text/csv"));
             DataResponse response = DataResponse.builder()
-                                                .data(resource)
-                                                .status(HttpStatus.OK)
-                                                .statusCode(200)
-                                                .message("Student data exported successfully !")
-                                                .build();
+                    .data(resource)
+                    .status(HttpStatus.OK)
+                    .statusCode(200)
+                    .message("Student data exported successfully !")
+                    .build();
             log.info("Successfully exported student data to CSV file");
             return ResponseEntity.status(HttpStatus.OK).headers(headers).body(resource);
         } catch (Exception e) {
@@ -243,4 +251,51 @@ public class AuthController {
             throw new Exception(e.getMessage());
         }
     }
+
+    @PostMapping("/request/{sId}")
+    public ResponseEntity<?> generateTc(@PathVariable String sId, @RequestBody TransferCertificateRequest req)
+            throws IOException {
+
+        Student student = this.studentServiceImpl.getStudentById(sId);
+
+        if (student == null) {
+            SuccessResponse res = SuccessResponse
+                    .builder()
+                    .status(HttpStatus.NOT_FOUND)
+                    .statusCode(404)
+                    .message("Student not found")
+                    .build();
+            return new ResponseEntity<>(res, HttpStatus.NOT_FOUND);
+        }
+
+        ByteArrayOutputStream bos = this.tcService.generateTc(student, req);
+
+        // int copyCount = student.getTransferCertificates() == null ? 1 :
+        // student.getTransferCertificates().size() + 1;
+
+        // TransferCertificate transferCertificate = TransferCertificate.builder()
+        // .student(student)
+        // .copyNumber(copyCount)
+        // .data(bos.toByteArray())
+        // .issueAt(LocalDateTime.now().toString())
+        // .build();
+
+        // this.transferCertificateRepository.save(transferCertificate);
+
+        // if (student.getTransferCertificates() != null) {
+        // student.getTransferCertificates().add(transferCertificate);
+        // this.studentRepo.save(student);
+        // }
+
+        DataResponse res = DataResponse
+                .builder()
+                .status(HttpStatus.OK)
+                .message("Transfer Certificate generated successfully")
+                .statusCode(200)
+                .data(bos.toByteArray())
+                .build();
+
+        return new ResponseEntity<>(res, HttpStatus.OK);
+    }
+
 }

@@ -37,16 +37,18 @@ import com.main.stpaul.dto.request.ExcelStudent;
 import com.main.stpaul.dto.response.PendingStudents;
 import com.main.stpaul.entities.AdmissionForm;
 import com.main.stpaul.entities.BankDetail;
+import com.main.stpaul.entities.BiofocalSubject;
 import com.main.stpaul.entities.GuardianInfo;
 import com.main.stpaul.entities.LastSchool;
+import com.main.stpaul.entities.Stream;
 import com.main.stpaul.entities.Student;
 import com.main.stpaul.entities.StudentAcademics;
+import com.main.stpaul.entities.Subject;
 import com.main.stpaul.repository.StudentRepo;
 import com.main.stpaul.services.serviceInterface.StudentService;
 
-
 @Service
-public class StudentServiceImpl implements StudentService{
+public class StudentServiceImpl implements StudentService {
 
     @Autowired
     private StudentRepo studentRepo;
@@ -62,6 +64,12 @@ public class StudentServiceImpl implements StudentService{
 
     @Autowired
     private StudentAcademicsServiceImpl academicsServiceImpl;
+
+    @Autowired
+    private StreamServiceImpl streamServiceImpl;
+
+    @Autowired
+    private BioFocalSubjectServiceImpl bioFocalSubjectServiceImpl;
 
     @Autowired
     private AdmissionFormServiceImpl admissionFormServiceImpl;
@@ -80,8 +88,8 @@ public class StudentServiceImpl implements StudentService{
     }
 
     @Override
-    public List<Student> getAllStudents(String query,String stdClass,String section,String session) {
-        return this.studentRepo.findAllStudents(query,stdClass,section,session);
+    public List<Student> getAllStudents(String query, String stdClass, String section, String session) {
+        return this.studentRepo.findAllStudents(query, stdClass, section, session);
     }
 
     @Override
@@ -101,20 +109,21 @@ public class StudentServiceImpl implements StudentService{
     }
 
     @Override
-    public List<PendingStudents> getPendingStudents(String query,String stdClass,String section,String session) {
-        return this.studentRepo.findByStatus(query,stdClass,section,session,Status.Pending);
+    public List<PendingStudents> getPendingStudents(String query, String stdClass, String section, String session) {
+        return this.studentRepo.findByStatus(query, stdClass, section, session, Status.Pending);
     }
 
     @Override
-    public List<Student> getFailStudents(String query,String stdClass,String section,String session) {
-        return this.studentRepo.findFailStudents(query,stdClass,section,session,Result.FAIL);
+    public List<Student> getFailStudents(String query, String stdClass, String section, String session) {
+        return this.studentRepo.findFailStudents(query, stdClass, section, session, Result.FAIL);
     }
 
- /**
+    /**
      * Loads student data from a CSV file and saves it to the database.
+     * 
      * @param file The CSV file containing student data.
      * @return A Result object indicating the success or failure of the operation.
- * @throws Exception 
+     * @throws Exception
      */
 
     @Override
@@ -148,22 +157,22 @@ public class StudentServiceImpl implements StudentService{
                 // BankDetail bankDetail = new BankDetail();
                 LastSchool lastSchool = new LastSchool();
                 String formNo = null;
-    
+
                 for (Object obj : data) {
                     if (obj instanceof Student) {
                         student = (Student) obj;
                     } else if (obj instanceof GuardianInfo) {
                         guardianInfo = (GuardianInfo) obj;
-                    // } else if (obj instanceof BankDetail) {
-                    //     bankDetail = (BankDetail) obj;
-                    // }
+                        // } else if (obj instanceof BankDetail) {
+                        // bankDetail = (BankDetail) obj;
+                        // }
                     } else if (obj instanceof LastSchool) {
                         lastSchool = (LastSchool) obj;
-                    }else if(obj instanceof String) {
+                    } else if (obj instanceof String) {
                         formNo = (String) obj;
                     }
                 }
-    
+
                 if (student != null) {
                     student = addStudent(student);
                     guardianInfo.setStudent(student);
@@ -187,6 +196,12 @@ public class StudentServiceImpl implements StudentService{
                     admissionForm.setSession(student.getSession());
                     admissionForm.setFormNo(formNo);
                     this.admissionFormServiceImpl.addAdmissionForm(admissionForm);
+                    Stream stream = new Stream();
+                    stream.setAcademics(studentAcademics);
+                    stream = this.streamServiceImpl.addStream(stream);
+                    BiofocalSubject biofocalSubject = new BiofocalSubject();
+                    biofocalSubject.setAcademics(studentAcademics);
+                    this.bioFocalSubjectServiceImpl.addBiofocalSubject(biofocalSubject);
                 }
             }
         } catch (Exception e) {
@@ -195,16 +210,18 @@ public class StudentServiceImpl implements StudentService{
         return;
     }
 
-
     @Override
     public ByteArrayInputStream loadStudentDataToCSV(String query, String stdClass, String section, String session) {
-        List<Student> students = this.studentRepo.findAllStudents(query,stdClass,section,session);
+        List<Student> students = this.studentRepo.findAllStudents(query, stdClass, section, session);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        try(CSVPrinter csvPrinter = new CSVPrinter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8), CSVFormat.DEFAULT.withHeader("studentId", "name", "fatherName", "motherName", "surname", "section",
-                 "session","gender","stdClass","adharNo","phoneNo","email","dateOfBirth"))) {
+        try (CSVPrinter csvPrinter = new CSVPrinter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8),
+                CSVFormat.DEFAULT.withHeader("studentId", "name", "fatherName", "motherName", "surname", "section",
+                        "session", "gender", "stdClass", "adharNo", "phoneNo", "email", "dateOfBirth"))) {
             for (Student student : students) {
-                csvPrinter.printRecord(student.getStudentId(), student.getFirstName(), 
-                student.getFatherName(), student.getMotherName(), student.getSurname(), student.getSection(), student.getSession(),student.getGender(), student.getStdClass(), student.getAdharNo(), student.getPhoneNo(), student.getEmail(), student.getDateOfBirth());
+                csvPrinter.printRecord(student.getStudentId(), student.getFirstName(),
+                        student.getFatherName(), student.getMotherName(), student.getSurname(), student.getSection(),
+                        student.getSession(), student.getGender(), student.getStdClass(), student.getAdharNo(),
+                        student.getPhoneNo(), student.getEmail(), student.getDateOfBirth());
             }
             csvPrinter.flush();
         } catch (IOException e) {
@@ -216,14 +233,16 @@ public class StudentServiceImpl implements StudentService{
 
     /**
      * Parses a CSV file and converts it into a list of Student objects.
+     * 
      * @param file The CSV file to parse.
      * @return A list of Student objects.
      * @throws Exception If an error occurs while parsing the file.
      */
 
-    private List<Student> parseCsv(MultipartFile file) throws Exception{
+    private List<Student> parseCsv(MultipartFile file) throws Exception {
         List<Student> students = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(),StandardCharsets.UTF_8))) {
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
             CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader());
             for (CSVRecord csvRecord : csvParser) {
                 Student student = new Student();
@@ -251,106 +270,107 @@ public class StudentServiceImpl implements StudentService{
     }
 
     private List<List<Object>> parseXlsx(MultipartFile file) throws Exception {
-    List<List<Object>> students = new ArrayList<>();
+        List<List<Object>> students = new ArrayList<>();
 
-    try (InputStream inputStream = file.getInputStream();
-         Workbook workbook = WorkbookFactory.create(inputStream)) {
+        try (InputStream inputStream = file.getInputStream();
+                Workbook workbook = WorkbookFactory.create(inputStream)) {
 
-        Sheet sheet = workbook.getSheetAt(0);
-        Iterator<Row> rowIterator = sheet.iterator();
+            Sheet sheet = workbook.getSheetAt(0);
+            Iterator<Row> rowIterator = sheet.iterator();
 
-        if (!rowIterator.hasNext()) return students;
+            if (!rowIterator.hasNext())
+                return students;
 
-        Row headerRow = rowIterator.next();
+            Row headerRow = rowIterator.next();
 
-        // Extract all indexes at once
-        Map<String, Integer> indexMap = new HashMap<>();
-        String[] headers = {"formNo",
-            "firstName", "fatherName", "motherName", "surname","email","phoneNo",
-            "dateOfBirth", "gender", "aadharNo", "bloodGroup", "caste", "category", "scholarship",
-            "admissionDate", "section", "session", "stdClass", "rollNo",
-            "guardianName", "guardianRelation", "guardianOccupation", "guardianIncome","guardianPhoneNo",
-            "lastSchoolName", "lastStudentId", "lastRollNo", "uId", "lastExamination", "examMonth", "marksObtained", "result"
-        };
+            // Extract all indexes at once
+            Map<String, Integer> indexMap = new HashMap<>();
+            String[] headers = { "formNo",
+                    "firstName", "fatherName", "motherName", "surname", "email", "phoneNo",
+                    "dateOfBirth", "gender", "aadharNo", "bloodGroup", "caste", "category", "scholarship",
+                    "admissionDate", "section", "session", "stdClass", "rollNo",
+                    "guardianName", "guardianRelation", "guardianOccupation", "guardianIncome", "guardianPhoneNo",
+                    "lastSchoolName", "lastStudentId", "lastRollNo", "uId", "lastExamination", "examMonth",
+                    "marksObtained", "result"
+            };
 
-        for (String header : headers) {
-            int idx = getColumnIndex(headerRow, header);
-            if (idx == -1) {
-                throw new RuntimeException("Missing column: " + header);
+            for (String header : headers) {
+                int idx = getColumnIndex(headerRow, header);
+                if (idx == -1) {
+                    throw new RuntimeException("Missing column: " + header);
+                }
+                indexMap.put(header, idx);
             }
-            indexMap.put(header, idx);
+
+            while (rowIterator.hasNext()) {
+                Row row = rowIterator.next();
+                List<Object> objects = new ArrayList<>();
+
+                // Student
+                Student student = new Student();
+                student.setFirstName(getCellValue(row.getCell(indexMap.get("firstName"))));
+                student.setFatherName(getCellValue(row.getCell(indexMap.get("fatherName"))));
+                student.setMotherName(getCellValue(row.getCell(indexMap.get("motherName"))));
+                student.setSurname(getCellValue(row.getCell(indexMap.get("surname"))));
+                student.setEmail(getCellValue(row.getCell(indexMap.get("email"))));
+                student.setPhoneNo(getCellValue(row.getCell(indexMap.get("phoneNo"))));
+                student.setDateOfBirth(parseLocalDate(row.getCell(indexMap.get("dateOfBirth"))));
+                student.setGender(getCellValue(row.getCell(indexMap.get("gender"))));
+                student.setAdharNo(String.valueOf(getCellValue(row.getCell(indexMap.get("aadharNo")))));
+                student.setBloodGroup(getCellValue(row.getCell(indexMap.get("bloodGroup"))));
+                student.setCaste(getCellValue(row.getCell(indexMap.get("caste"))));
+                student.setCategory(getCellValue(row.getCell(indexMap.get("category"))));
+                student.setScholarshipCategory(getCellValue(row.getCell(indexMap.get("scholarship"))));
+                student.setAdmissionDate(parseLocalDate(row.getCell(indexMap.get("admissionDate"))));
+                student.setSection(getCellValue(row.getCell(indexMap.get("section"))));
+                student.setSession(getCellValue(row.getCell(indexMap.get("session"))));
+                student.setStdClass(getCellValue(row.getCell(indexMap.get("stdClass"))));
+                student.setRollNo(getCellValue(row.getCell(indexMap.get("rollNo"))));
+
+                // GuardianInfo
+                GuardianInfo guardianInfo = new GuardianInfo();
+                guardianInfo.setName(getCellValue(row.getCell(indexMap.get("guardianName"))));
+                guardianInfo.setPhone(getCellValue(row.getCell(indexMap.get("guardianPhoneNo"))));
+                guardianInfo.setRelation(getCellValue(row.getCell(indexMap.get("guardianRelation"))));
+                guardianInfo.setOccupation(getCellValue(row.getCell(indexMap.get("guardianOccupation"))));
+                guardianInfo.setIncome(safeParseDouble(getCellValue(row.getCell(indexMap.get("guardianIncome")))));
+
+                // LastSchool
+                LastSchool lastSchool = new LastSchool();
+                lastSchool.setCollegeName(getCellValue(row.getCell(indexMap.get("lastSchoolName"))));
+                lastSchool.setLastStudentId(getCellValue(row.getCell(indexMap.get("lastStudentId"))));
+                lastSchool.setRollNo(getCellValue(row.getCell(indexMap.get("lastRollNo"))));
+                lastSchool.setUid(getCellValue(row.getCell(indexMap.get("uId"))));
+                lastSchool.setExamination(getCellValue(row.getCell(indexMap.get("lastExamination"))));
+                lastSchool.setExamMonth(getCellValue(row.getCell(indexMap.get("examMonth"))));
+                lastSchool.setMarksObtained(safeParseDouble(getCellValue(row.getCell(indexMap.get("marksObtained")))));
+                lastSchool.setResult(getCellValue(row.getCell(indexMap.get("result"))));
+
+                objects.add(student);
+                objects.add(guardianInfo);
+                objects.add(lastSchool);
+                objects.add(getCellValue(row.getCell(indexMap.get("formNo"))));
+                students.add(objects);
+            }
         }
 
-        while (rowIterator.hasNext()) {
-            Row row = rowIterator.next();
-            List<Object> objects = new ArrayList<>();
-
-            // Student
-            Student student = new Student();
-            student.setFirstName(getCellValue(row.getCell(indexMap.get("firstName"))));
-            student.setFatherName(getCellValue(row.getCell(indexMap.get("fatherName"))));
-            student.setMotherName(getCellValue(row.getCell(indexMap.get("motherName"))));
-            student.setSurname(getCellValue(row.getCell(indexMap.get("surname"))));
-            student.setEmail(getCellValue(row.getCell(indexMap.get("email"))));
-            student.setPhoneNo(getCellValue(row.getCell(indexMap.get("phoneNo"))));
-            student.setDateOfBirth(parseLocalDate(row.getCell(indexMap.get("dateOfBirth"))));
-            student.setGender(getCellValue(row.getCell(indexMap.get("gender"))));
-            student.setAdharNo(String.valueOf(getCellValue(row.getCell(indexMap.get("aadharNo")))));
-            student.setBloodGroup(getCellValue(row.getCell(indexMap.get("bloodGroup"))));
-            student.setCaste(getCellValue(row.getCell(indexMap.get("caste"))));
-            student.setCategory(getCellValue(row.getCell(indexMap.get("category"))));
-            student.setScholarshipCategory(getCellValue(row.getCell(indexMap.get("scholarship"))));
-            student.setAdmissionDate(parseLocalDate(row.getCell(indexMap.get("admissionDate"))));
-            student.setSection(getCellValue(row.getCell(indexMap.get("section"))));
-            student.setSession(getCellValue(row.getCell(indexMap.get("session"))));
-            student.setStdClass(getCellValue(row.getCell(indexMap.get("stdClass"))));
-            student.setRollNo(getCellValue(row.getCell(indexMap.get("rollNo"))));
-
-            // GuardianInfo
-            GuardianInfo guardianInfo = new GuardianInfo();
-            guardianInfo.setName(getCellValue(row.getCell(indexMap.get("guardianName"))));
-            guardianInfo.setPhone(getCellValue(row.getCell(indexMap.get("guardianPhoneNo"))));
-            guardianInfo.setRelation(getCellValue(row.getCell(indexMap.get("guardianRelation"))));
-            guardianInfo.setOccupation(getCellValue(row.getCell(indexMap.get("guardianOccupation"))));
-            guardianInfo.setIncome(safeParseDouble(getCellValue(row.getCell(indexMap.get("guardianIncome")))));
-
-            // LastSchool
-            LastSchool lastSchool = new LastSchool();
-            lastSchool.setCollegeName(getCellValue(row.getCell(indexMap.get("lastSchoolName"))));
-            lastSchool.setLastStudentId(getCellValue(row.getCell(indexMap.get("lastStudentId"))));
-            lastSchool.setRollNo(getCellValue(row.getCell(indexMap.get("lastRollNo"))));
-            lastSchool.setUid(getCellValue(row.getCell(indexMap.get("uId"))));
-            lastSchool.setExamination(getCellValue(row.getCell(indexMap.get("lastExamination"))));
-            lastSchool.setExamMonth(getCellValue(row.getCell(indexMap.get("examMonth"))));
-            lastSchool.setMarksObtained(safeParseDouble(getCellValue(row.getCell(indexMap.get("marksObtained")))));
-            lastSchool.setResult(getCellValue(row.getCell(indexMap.get("result"))));
-
-            objects.add(student);
-            objects.add(guardianInfo);
-            objects.add(lastSchool);
-            objects.add(getCellValue(row.getCell(indexMap.get("formNo"))));
-            students.add(objects);
-        }
+        return students;
     }
 
-    return students;
-}
-
-    
-
-// Get the column index by header name
-private int getColumnIndex(Row headerRow, String columnName) {
-    for (Cell cell : headerRow) {
-        if (cell.getStringCellValue().equalsIgnoreCase(columnName)) {
-            return cell.getColumnIndex();
+    // Get the column index by header name
+    private int getColumnIndex(Row headerRow, String columnName) {
+        for (Cell cell : headerRow) {
+            if (cell.getStringCellValue().equalsIgnoreCase(columnName)) {
+                return cell.getColumnIndex();
+            }
         }
+        return -1; // Return -1 if not found
     }
-    return -1; // Return -1 if not found
-}
 
-// Get cell value as string
+    // Get cell value as string
     private String getCellValue(Cell cell) {
-        if (cell == null) return "";
+        if (cell == null)
+            return "";
         switch (cell.getCellType()) {
             case STRING:
                 return cell.getStringCellValue();
@@ -365,8 +385,10 @@ private int getColumnIndex(Row headerRow, String columnName) {
                 return "";
         }
     }
+
     private LocalDate parseLocalDate(Cell cell) {
-        if (cell == null) return null;
+        if (cell == null)
+            return null;
         try {
             if (cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
                 return cell.getLocalDateTimeCellValue().toLocalDate();
@@ -376,7 +398,7 @@ private int getColumnIndex(Row headerRow, String columnName) {
             return null;
         }
     }
-    
+
     private Double safeParseDouble(String value) {
         try {
             return Double.parseDouble(value);

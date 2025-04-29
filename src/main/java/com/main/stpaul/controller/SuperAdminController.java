@@ -23,56 +23,62 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-
 @Slf4j
 @RestController
 @RequestMapping("/api/superadmin")
 public class SuperAdminController {
 
-    
     @Autowired
     private CollegeFeesServiceImpl collegeFeesServiceImpl;
 
     @Autowired
     private CollegeFeesMappler collegeFeesMappler;
 
-    
-    @PostMapping("/college/fees")    
-    public ResponseEntity<?> addCollegeFees(@RequestBody CollegeFeesRequest request)throws Exception{
+    @PostMapping("/college/fees")
+    public ResponseEntity<?> addCollegeFees(@RequestBody CollegeFeesRequest request) throws Exception {
         try {
             CollegeFees cf = this.collegeFeesServiceImpl.getCollegeFeesByClass(request.getStdClass());
-            if(cf!=null){
+            if (cf != null) {
                 throw new DuplicateEntityException("Class alredy found !");
             }
             this.collegeFeesServiceImpl.addCollegeFees(this.collegeFeesMappler.toCollegeFees(request));
-            SuccessResponse response = new SuccessResponse(HttpStatus.OK,200,"Fees Added Successfully !");
+            SuccessResponse response = new SuccessResponse(HttpStatus.OK, 200, "Fees Added Successfully !");
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
             throw new Exception(e.getMessage());
         }
+
     }
 
-    @GetMapping("/college/fees/{id}")    
-    public ResponseEntity<?> addCollegeFeesById(@PathVariable("id")long id)throws Exception{
+    @GetMapping("/college/fees/{id}")
+    public ResponseEntity<?> addCollegeFeesById(@PathVariable("id") long id) throws Exception {
         try {
             DataResponse response = DataResponse.builder()
-                                                .data(this.collegeFeesServiceImpl.getCollegeFees(id))
-                                                .status(HttpStatus.OK)
-                                                .statusCode(200)
-                                                .message("get All Fees successfully !")
-                                                .build();
+                    .data(this.collegeFeesServiceImpl.getCollegeFees(id))
+                    .status(HttpStatus.OK)
+                    .statusCode(200)
+                    .message("get All Fees successfully !")
+                    .build();
             return ResponseEntity.status(HttpStatus.OK).body(response);
+
         } catch (Exception e) {
             throw new Exception(e.getMessage());
         }
     }
 
-    @PutMapping("/college/fees/{id}")    
-    public ResponseEntity<?> updateCollegeFees(@PathVariable("id")long id ,@RequestBody CollegeFeesRequest request)throws Exception{
+    @PutMapping("/college/fees/{id}")
+    public ResponseEntity<?> updateCollegeFees(@PathVariable("id") long id, @RequestBody CollegeFeesRequest request)
+            throws Exception {
         try {
             log.info("College fees Updating ....");
+
+            CollegeFees cf = this.collegeFeesServiceImpl.getCollegeFeesByClass(request.getStdClass());
+            if (cf != null) {
+                throw new DuplicateEntityException("Class alredy found !");
+            }
+
             this.collegeFeesServiceImpl.updateCollegeFees(request, id);
-            SuccessResponse response = new SuccessResponse(HttpStatus.OK,200,"College fees Updated Successfully !");
+            SuccessResponse response = new SuccessResponse(HttpStatus.OK, 200, "College fees Updated Successfully !");
             log.info("College Fees Updated Successfully");
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
@@ -82,10 +88,10 @@ public class SuperAdminController {
     }
 
     @DeleteMapping("/college/fees/{id}")
-    public ResponseEntity<?> deleteCollegeFees(@PathVariable("id")long id)throws Exception{
+    public ResponseEntity<?> deleteCollegeFees(@PathVariable("id") long id) throws Exception {
         try {
             this.collegeFeesServiceImpl.deleteCollegeFees(id);
-            SuccessResponse response = new SuccessResponse(HttpStatus.OK,200,"College fees deleted Successfully !");
+            SuccessResponse response = new SuccessResponse(HttpStatus.OK, 200, "College fees deleted Successfully !");
             log.info("College Fees Deleted Successfully");
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {

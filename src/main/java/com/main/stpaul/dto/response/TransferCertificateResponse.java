@@ -7,8 +7,8 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class LeavingCertificateResponse {
-  
+public class TransferCertificateResponse {
+
     private long srNo;
 
     private int copyNumber;

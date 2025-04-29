@@ -25,7 +25,7 @@ public class StudentDetailResponse {
     private String phoneNo;
     private LocalDate dateOfBirth;
     private String gender;
-    
+
     private String localAddress;
     private String permanentAddress;
     private byte[] image;
@@ -45,12 +45,12 @@ public class StudentDetailResponse {
     private List<StudentAcademicsResponse> studentAcademics;
 
     private List<DocumentReponse> documents;
-    
+
     private GuardianInfoResponse guardianInfo;
 
     private BankDetailResponse bankDetail;
 
     private LastSchoolResponse lastSchool;
 
-    private List<LeavingCertificateResponse> leavingCertificates;
+    private List<TransferCertificateResponse> transferCertificates;
 }

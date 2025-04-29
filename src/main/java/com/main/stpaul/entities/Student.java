@@ -33,7 +33,6 @@ public class Student {
     private String category;
     private String scholarshipCategory;
 
-    
     private String localAddress;
     private String permanentAddress;
 
@@ -53,21 +52,20 @@ public class Student {
 
     private boolean isDelete = false;
     private boolean isActive = true;
-    
+
     private LocalDateTime addDate = LocalDateTime.now();
     private LocalDateTime updatedDate = LocalDateTime.now();
     private LocalDateTime deleteDate;
 
-
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL)
     private List<StudentAcademics> studentAcademics;
-    
-    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL)
-    private List<LeavingCertificate> leavingCertificates;
+
+    @OneToOne(mappedBy = "student")
+    private TransferCertificate transferCertificate;
 
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL)
     private List<Documents> documents;
-    
+
     @OneToOne(mappedBy = "student", cascade = CascadeType.ALL)
     private GuardianInfo guardianInfo;
 
@@ -80,4 +78,8 @@ public class Student {
     @JsonIgnore
     @OneToOne(mappedBy = "student")
     private AdmissionForm admissionForm;
+
+    public String getFullName() {
+        return this.firstName + " " + this.fatherName + " " + this.surname;
+    }
 }

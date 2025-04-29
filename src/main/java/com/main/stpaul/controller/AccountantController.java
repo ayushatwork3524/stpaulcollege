@@ -40,7 +40,6 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/api/accountant")
 public class AccountantController {
-    
 
     @Autowired
     private StudentServiceImpl studentServiceImpl;
@@ -60,14 +59,13 @@ public class AccountantController {
     @Autowired
     private CollegeFeesServiceImpl collegeFeesServiceImpl;
 
-
     @PostMapping("/student/academics/{academicsId}/payment")
     public ResponseEntity<?> addPayment(
             @PathVariable("academicsId") String academicsId,
             @RequestBody AddPaymentRequest addPaymentRequest) throws Exception {
 
         log.info("Starting addPayment method with academicsId: {}", academicsId);
-        
+
         try {
             // 1. Fetch StudentAcademics
             StudentAcademics studentAcademics = studentAcademicsServiceImpl.getAcademicsById(academicsId);
@@ -117,9 +115,7 @@ public class AccountantController {
             byte[] pdf = PdfGenerator.generateReceiptPdf(
                     student,
                     receiptMapper.toReceiptResponse(newReceipt),
-                    paymentDetail
-            );
-            
+                    paymentDetail);
 
             // 9. Build response
             DataResponse response = DataResponse.builder()
@@ -138,52 +134,55 @@ public class AccountantController {
         }
     }
 
-    
     @GetMapping("/student/{studentId}/payment/receipt/{receiptId}")
-    public ResponseEntity<?> downloadPdf(@PathVariable("studentId")String studentId,@PathVariable("receiptId")Long receiptId)throws Exception{
+    public ResponseEntity<?> downloadPdf(@PathVariable("studentId") String studentId,
+            @PathVariable("receiptId") Long receiptId) throws Exception {
         log.info("Starting downloadPdf method with studentId: {} and receiptId: {}", studentId, receiptId);
         try {
             Student student = this.studentServiceImpl.getStudentById(studentId);
-            if(student ==null){
+            if (student == null) {
                 log.error("Student not found with ID: {}", studentId);
                 throw new EntityNotFoundException("Student not found !");
             }
             Receipt receipt = this.receiptServiceImpl.findByid(receiptId);
             String id = receipt.getPaymentDetail().getPaymentDetailId();
 
-            byte[] pdf = PdfGenerator.generateReceiptPdf(student,this.receiptMapper.toReceiptResponse(receipt),this.paymentDetailServiceImpl.getPaymentById(id));
+            byte[] pdf = PdfGenerator.generateReceipt(student, this.receiptMapper.toReceiptResponse(receipt),
+                    this.paymentDetailServiceImpl.getPaymentById(id));
 
             DataResponse response = DataResponse.builder()
-                                                .data(pdf)
-                                                .message("payment Receipt get Successfully !")
-                                                .status(HttpStatus.OK)
-                                                .statusCode(200)
-                                                .build();
+                    .data(pdf)
+                    .message("payment Receipt get Successfully !")
+                    .status(HttpStatus.OK)
+                    .statusCode(200)
+                    .build();
             log.info("Successfully generated PDF for studentId: {} and receiptId: {}", studentId, receiptId);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            log.error("Error generating PDF for studentId: {} and receiptId: {}: {}", studentId, receiptId, e.getMessage());
+            log.error("Error generating PDF for studentId: {} and receiptId: {}: {}", studentId, receiptId,
+                    e.getMessage());
             throw new Exception(e.getMessage());
         }
     }
 
     @GetMapping("/student/pending")
     public ResponseEntity<?> getPendingStudents(@RequestParam(required = false) String query,
-                                                @RequestParam(required = false) String stdClass,
-                                                @RequestParam(required = false) String section,
-                                                @RequestParam(required = false) String session)throws Exception{
+            @RequestParam(required = false) String stdClass,
+            @RequestParam(required = false) String section,
+            @RequestParam(required = false) String session) throws Exception {
         log.info("Starting getPendingStudents method");
         try {
-            List<PendingStudents> students = this.studentServiceImpl.getPendingStudents(query, stdClass, section, session); 
-            for(PendingStudents student:students){
+            List<PendingStudents> students = this.studentServiceImpl.getPendingStudents(query, stdClass, section,
+                    session);
+            for (PendingStudents student : students) {
                 student.setTotalFees(this.collegeFeesServiceImpl.getTotalFeesByClass(student.getStdClass()));
             }
             DataResponse response = DataResponse.builder()
-                                                .data(students)
-                                                .message("get All Pending Students successfully !")
-                                                .status(HttpStatus.OK)
-                                                .statusCode(200)
-                                                .build();
+                    .data(students)
+                    .message("get All Pending Students successfully !")
+                    .status(HttpStatus.OK)
+                    .statusCode(200)
+                    .build();
             log.info("Successfully retrieved pending students");
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
@@ -193,15 +192,16 @@ public class AccountantController {
     }
 
     @DeleteMapping("/student/payment-detail/{paymentDetailId}")
-    public ResponseEntity<?> deletePaymentDetail(@PathVariable("paymentDetailId")String paymentDetailId)throws Exception{
+    public ResponseEntity<?> deletePaymentDetail(@PathVariable("paymentDetailId") String paymentDetailId)
+            throws Exception {
         log.info("Starting deletePaymentDetail method with paymentDetailId: {}", paymentDetailId);
         try {
             this.paymentDetailServiceImpl.deletePaymentDetail(paymentDetailId);
             DataResponse response = DataResponse.builder()
-                                                .message("Payment Detail deleted successfully !")
-                                                .status(HttpStatus.OK)
-                                                .statusCode(200)
-                                                .build();
+                    .message("Payment Detail deleted successfully !")
+                    .status(HttpStatus.OK)
+                    .statusCode(200)
+                    .build();
             log.info("Successfully deleted payment detail with ID: {}", paymentDetailId);
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {

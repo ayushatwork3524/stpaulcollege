@@ -180,7 +180,8 @@ public class ManagerController {
             this.admissionFormServiceImpl.addAdmissionForm(admissionForm);
             log.info("admission form Added Successfully ");
 
-            // BankDetail bankDetail = this.bankDetailMapper.toBankDetail(request.getBankDetail());
+            // BankDetail bankDetail =
+            // this.bankDetailMapper.toBankDetail(request.getBankDetail());
             // bankDetail.setStudent(student);
             // this.bankDetailServiceImpl.addBankDetail(bankDetail);
             // log.info("Bank Detail Added Successfully ");
@@ -215,7 +216,7 @@ public class ManagerController {
             }
             log.info("Subjects Added Successfully ");
 
-            if(request.getBioFocalSubject()!=null ){
+            if (request.getBioFocalSubject() != null) {
                 BiofocalSubject biofocalSubject = new BiofocalSubject();
                 biofocalSubject.setMedium(request.getBioFocalSubject().getMedium());
                 biofocalSubject.setAcademics(studentAcademics);
@@ -246,12 +247,12 @@ public class ManagerController {
         log.info("Starting uploadDoucuments method with studentId: {}", id);
         log.info("Uploading Student Documents");
         Student student = this.studentServiceImpl.getStudentById(id);
-        StudentAcademics studnetAcademics= this.studentAcademicsServiceImpl.getPendingAcademicsByStudent(id);
+        StudentAcademics studnetAcademics = this.studentAcademicsServiceImpl.getPendingAcademicsByStudent(id);
         if (student == null) {
             log.warn("student not found for id : {}", id);
             throw new EntityNotFoundException("Student not present !");
         }
-        if(studnetAcademics==null){
+        if (studnetAcademics == null) {
             log.warn("student academics not found for id : {}", id);
             throw new EntityNotFoundException("Student Academics not present !");
         }
@@ -282,14 +283,13 @@ public class ManagerController {
         log.info("Starting addPaymentDetail method with studentId: {} and academicId: {}", studentId, academicId);
         try {
             StudentAcademics academics = this.studentAcademicsServiceImpl.getAcademicsById(academicId);
-            if(academics==null){
+            if (academics == null) {
                 log.warn("student Academics not found with id : {}", academicId);
                 throw new EntityNotFoundException("Student Academics not present !");
             }
             PaymentDetail paymentDetail2 = this.paymentDetailMapper.toPaymentDetail(paymentDetail);
             paymentDetail2.setStudentAcademics(academics);
             Receipt receipt = new Receipt();
-
 
             receipt.setAmountPaid(paymentDetail2.getPaidAmount());
             receipt.setTransactionId(null);
@@ -555,6 +555,12 @@ public class ManagerController {
             stream1.setMedium(stream.getMedium());
             stream1.setStream(stream.getStream());
             stream1.setSubStream(stream.getSubStream());
+            for (String subject : stream.getSubjects()) {
+                Subject sb = new Subject();
+                sb.setName(subject);
+                sb.setStream(stream1);
+                this.subjectServiceImpl.addSubject(sb);
+            }
             stream1.setAcademics(studentAcademics);
             this.streamServiceImpl.addStream(stream1);
             SuccessResponse response = new SuccessResponse(HttpStatus.OK, 200, "Stream updated Successfully !");
@@ -809,5 +815,4 @@ public class ManagerController {
         }
     }
 
-    
 }
